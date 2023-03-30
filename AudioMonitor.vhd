@@ -1,6 +1,6 @@
 -- AudioMonitor.vhd
 -- Created 2023
---
+-- Levi Tucker, George Lee, Edmond Li, Isaac Chia, Edward Kwak
 -- This SCOMP peripheral passes data from an input bus to SCOMP's I/O bus.
 
 library IEEE;
