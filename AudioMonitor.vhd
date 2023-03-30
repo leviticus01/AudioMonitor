@@ -68,9 +68,9 @@ begin
 				CASE state IS
 					WHEN ThresholdTest =>
 						IF (unsigned(AUD_DATA) >= unsigned(threshold)) THEN
-							state <= ThresholdMet;
+							parsed_data <= x"CCCC";
 						ELSE
-							state <= ThresholdTest;
+							parsed_data <= x"1111";
 						END IF;
 					WHEN ThresholdMet =>
 						--define ThresholdMet state
