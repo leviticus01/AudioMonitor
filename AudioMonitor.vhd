@@ -73,7 +73,24 @@ begin
 							state <= ThresholdTest;
 						END IF;
 					WHEN ThresholdMet =>
-						parsed_data <= AUD_DATA;
+						--define ThresholdMet state
+							--counter++
+							if (unsigned(NEW_DATA) >= unsigned(threshold)) then 
+								state <= ThresholdMet; 
+							else 
+								state <= Analysis; 
+							end if; 
+					WHEN Analysis => 
+						-- compare counter w/ clap limit
+							if (counter <= clap limit) then 
+								--clapState; 
+							else 
+								--notClapState;
+							end if; 
+					WHEN clapState => 
+						-- send to SCOMP, increment hex thing 
+					WHEN notClapState => 
+						state <= ThresholdTest; 
 				END CASE;
 			end if;
     end process;
