@@ -32,10 +32,16 @@ architecture a of AudioMonitor is
 	 
 	 
 	 signal threshold_met : std_logic;
-	 constant threshold : std_logic_vector(15 downto 0) := x"2710";
+	 --constant threshold : std_logic_vector(15 downto 0) := x"2710";
+	 constant threshold : integer := 10000;
+	 constant clapLimit : integer := 1000; -- define how long the clap should be?
+	 signal counter : integer := 0;
 	 
 	 
 	 TYPE STATE_TYPE IS (
+		Analysis,
+		clapState,
+		notClapState,
 		ThresholdTest,
 		ThresholdMet
 	 );
@@ -62,12 +68,12 @@ begin
     process (RESETN, SYS_CLK)
     begin
         if (RESETN = '0') then -- on reset
-            parsed_data <= x"0000";
-				threshold_met <= '0';
+            parsed_data <= x"0000"; -- reset the parsed data
+				threshold_met <= '0'; -- threshold is not met
 			elsif (rising_edge(AUD_NEW)) then
 				CASE state IS
 					WHEN ThresholdTest =>
-						IF (unsigned(AUD_DATA) >= unsigned(threshold)) THEN
+						IF (conv_integer(AUD_DATA) >= threshold) THEN
 							parsed_data <= x"CCCC";
 						ELSE
 							parsed_data <= x"1111";
@@ -75,16 +81,21 @@ begin
 					WHEN ThresholdMet =>
 						--define ThresholdMet state
 							--counter++
-							if (unsigned(NEW_DATA) >= unsigned(threshold)) then 
-								state <= ThresholdMet; 
+							if (conv_integer(AUD_DATA) >= threshold) then 
+								counter <= counter + 1; -- start increasing the counter
+								state <= ThresholdMet;
 							else 
 								state <= Analysis; 
 							end if; 
 					WHEN Analysis => 
 						-- compare counter w/ clap limit
-							if (counter <= clap limit) then 
+							if (counter <= clapLimit) then  -- checks the length of the clap?
+								counter <= 0; -- reset the counter
+								state <= clapState;
 								--clapState; 
 							else 
+								counter <= 0; -- reset the counter
+								state <= notClapState;
 								--notClapState;
 							end if; 
 					WHEN clapState => 
