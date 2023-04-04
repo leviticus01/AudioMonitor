@@ -69,7 +69,6 @@ begin
     begin
         if (RESETN = '0') then -- on reset
             parsed_data <= x"0000"; -- reset the parsed data
-				threshold_met <= '0'; -- threshold is not met
 			elsif (rising_edge(AUD_NEW)) then
 				CASE state IS
 					WHEN ThresholdTest =>
