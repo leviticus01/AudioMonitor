@@ -72,6 +72,7 @@ begin
 			elsif (rising_edge(AUD_NEW)) then
 				CASE state IS
 					WHEN ThresholdTest =>
+						counter <= 0; -- reset the counter
 						IF (conv_integer(AUD_DATA) >= threshold) THEN
 							parsed_data <= x"CCCC";
 						ELSE
@@ -94,15 +95,15 @@ begin
 								--clapState; 
 							else 
 								counter <= 0; -- reset the counter
-								state <= notClapState;
-								--notClapState;
+								state <= ThresholdTest;
+								--Since the output is the same for all states except clapState, we can just
+	    							-- return to the beginning of the state machine (We can go to noclapState 
+	    							-- when we add additional features);
 							end if; 
 					WHEN clapState => 
-						-- send to SCOMP, increment hex thing 
-					WHEN notClapState => 
-						state <= ThresholdTest; 
+						state <= ThresholdTest
 				END CASE;
 			end if;
     end process;
-
+    parsed_data <= x"0011" WHEN state = clapState ELSE x"0000"; --The output to the SCOMP
 end a;
