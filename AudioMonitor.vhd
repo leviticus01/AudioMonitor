@@ -29,24 +29,23 @@ architecture a of AudioMonitor is
     signal parsed_data : std_logic_vector(15 downto 0);
     signal output_data : std_logic_vector(15 downto 0);
 	 
-	 
-	 
-	 signal threshold_met : std_logic;
+
 	 --constant threshold : std_logic_vector(15 downto 0) := x"2710";
 	 constant threshold : integer := 10000;
 	 constant clapLimit : integer := 10000; -- define how long the clap should be?
+	 signal temp : integer := 0;
 	 signal counter : integer := 0;
 	 
 	 
 	 TYPE STATE_TYPE IS (
 		Analysis,
 		clapState,
-		notClapState,
 		ThresholdTest,
 		ThresholdMet
 	 );
 	 
 	 signal state : STATE_TYPE;
+	 signal summon: std_logic_vector(1 DOWNTO 0);
 
 begin
 
@@ -69,47 +68,52 @@ begin
     begin
         if (RESETN = '0') then -- on reset
             parsed_data <= x"0000"; -- reset the parsed data
-				threshold_met <= '0'; -- threshold is not met
-			elsif (rising_edge(AUD_NEW)) then
-				state <= ThresholdTest;
-				CASE state IS
-					WHEN ThresholdTest =>
-						IF (conv_integer(AUD_DATA) >= threshold) THEN
-							state <= ThresholdMet;
-							--
-						ELSE
-							state <= ThresholdTest;
-							--
+		elsif (rising_edge(AUD_NEW)) then
+			state <= ThresholdTest;
+			CASE state IS
+				WHEN ThresholdTest =>
+					IF (conv_integer(unsigned(AUD_DATA)) >= threshold)THEN
+						IF summon = "10" THEN
+							parsed_data <= x"0000";
 						END IF;
-					WHEN ThresholdMet =>
-						--define ThresholdMet state
-							--counter++
-							if (conv_integer(AUD_DATA) >= threshold) then 
-								counter <= counter + 1; -- start increasing the counter
-								state <= ThresholdMet;
-							else 
-								state <= Analysis; 
-							end if; 
-					WHEN Analysis => 
-						-- compare counter w/ clap limit
-							if (counter <= clapLimit) then  -- checks the length of the clap?
-								counter <= 0; -- reset the counter
-								state <= clapState;
-								--clapState; 
-							else 
-								counter <= 0; -- reset the counter
-								state <= notClapState;
-								--notClapState;
-							end if; 
-					WHEN clapState => 
-						parsed_data <= x"1111";
+						state <= ThresholdMet;
+					ELSE
 						state <= ThresholdTest;
-						-- send to SCOMP, increment hex thing 
-					WHEN notClapState => 
-						parsed_data <= x"CCCC";
-						state <= ThresholdTest; 
-				END CASE;
-			end if;
+					END IF;
+				WHEN ThresholdMet =>
+					--define ThresholdMet state
+						--counter++
+					if (conv_integer(unsigned(AUD_DATA)) >= threshold) then 
+						IF summon = "10" THEN
+							counter <= counter + 1; -- start increasing the counter
+							parsed_data <= x"0000";
+						END IF;
+						state <= ThresholdMet;
+					else 
+						state <= Analysis; 
+					end if; 
+				WHEN Analysis => 
+					-- compare counter w/ clap limit
+						if (counter <= clapLimit) then  -- checks the length of the clap?
+							IF summon = "10" THEN
+								counter <= 0; -- reset the counter
+								parsed_data <= x"0000";
+							END IF;
+							state <= clapState;
+						else 
+							counter <= 0; -- reset the counter
+							state <= ThresholdTest;
+						end if; 
+				WHEN clapState => 
+					IF summon = "10" THEN
+						parsed_data <= x"0000";
+					END IF;
+					temp <= conv_integer(parsed_data) + 1;
+					parsed_data <= conv_std_logic_vector(temp, parsed_data'length);
+					state <= ThresholdTest; 
+			END CASE;
+		end if;
     end process;
+summon <= CS & IO_WRITE;
 
 end a;
