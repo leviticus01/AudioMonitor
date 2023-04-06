@@ -34,7 +34,7 @@ architecture a of AudioMonitor is
 	 signal threshold_met : std_logic;
 	 --constant threshold : std_logic_vector(15 downto 0) := x"2710";
 	 constant threshold : integer := 10000;
-	 constant clapLimit : integer := 1000; -- define how long the clap should be?
+	 constant clapLimit : integer := 10000; -- define how long the clap should be?
 	 signal counter : integer := 0;
 	 
 	 
@@ -69,14 +69,17 @@ begin
     begin
         if (RESETN = '0') then -- on reset
             parsed_data <= x"0000"; -- reset the parsed data
+				threshold_met <= '0'; -- threshold is not met
 			elsif (rising_edge(AUD_NEW)) then
+				state <= ThresholdTest;
 				CASE state IS
 					WHEN ThresholdTest =>
-						counter <= 0; -- reset the counter
 						IF (conv_integer(AUD_DATA) >= threshold) THEN
-							parsed_data <= x"CCCC";
+							state <= ThresholdMet;
+							--
 						ELSE
-							parsed_data <= x"1111";
+							state <= ThresholdTest;
+							--
 						END IF;
 					WHEN ThresholdMet =>
 						--define ThresholdMet state
@@ -95,15 +98,18 @@ begin
 								--clapState; 
 							else 
 								counter <= 0; -- reset the counter
-								state <= ThresholdTest;
-								--Since the output is the same for all states except clapState, we can just
-	    							-- return to the beginning of the state machine (We can go to noclapState 
-	    							-- when we add additional features);
+								state <= notClapState;
+								--notClapState;
 							end if; 
 					WHEN clapState => 
-						state <= ThresholdTest
+						parsed_data <= x"1111";
+						state <= ThresholdTest;
+						-- send to SCOMP, increment hex thing 
+					WHEN notClapState => 
+						parsed_data <= x"CCCC";
+						state <= ThresholdTest; 
 				END CASE;
 			end if;
     end process;
-    parsed_data <= x"0011" WHEN state = clapState ELSE x"0000"; --The output to the SCOMP
+
 end a;
