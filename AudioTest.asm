@@ -10,14 +10,7 @@ Init:
 	STORE	Data	; Store the OG data
 	; Display most-significant 10 bits of the magnitude on LEDs
 	AND	Mask
-	ADD	Count
-	STORE	Count
 	OUT	Hex0
-	LOAD	Data
-	SHIFT	-4
-	STORE 	Data
-	AND	Mask
-	OUT	Hex1
 	; GO to the start of the program
 	JUMP   0
 	
@@ -33,7 +26,7 @@ WaitingLoop:
 ; Variables
 Count: DW 0
 Data:	DW 0
-Mask:	DW &H0F
+Mask:	DW &HFF
 ResetSwitch:	DW 9
 
 ; IO address constants
