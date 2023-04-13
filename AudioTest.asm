@@ -4,8 +4,9 @@
 ORG 0
 ; The lower 4 bits of the audio peripheral output will be incrementing the number of claps by either 1 or 0; the next 4 bits will be the threshold level (1-3)
 Init:
+	CALL    Delay
 	; Get data from the audio peripheral
-	IN     Sound
+	IN      Sound
 	STORE	Data	; Store the OG data
 	; Display most-significant 10 bits of the magnitude on LEDs
 	AND	Mask
@@ -19,6 +20,15 @@ Init:
 	OUT	Hex1
 	; GO to the start of the program
 	JUMP   0
+	
+; the Delay "function"
+Delay:
+	OUT    Timer
+WaitingLoop:
+	IN     Timer
+	ADDI   -5
+	JNEG   WaitingLoop
+	RETURN
 
 ; Variables
 Count: DW 0
