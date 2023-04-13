@@ -12,15 +12,15 @@ use IEEE.std_logic_unsigned.all;
 use lpm.lpm_components.all;
 
 entity AudioMonitor is
-port(
-    CS          : in  std_logic;
-    IO_WRITE    : in  std_logic;
-    SYS_CLK     : in  std_logic;  -- SCOMP's clock
-    RESETN      : in  std_logic;
-    AUD_DATA    : in  std_logic_vector(15 downto 0);
-    AUD_NEW     : in  std_logic;
-    IO_DATA     : inout  std_logic_vector(15 downto 0)
-);
+	port(
+		 CS          : in  std_logic;
+		 IO_WRITE    : in  std_logic;
+		 SYS_CLK     : in  std_logic;  -- SCOMP's clock
+		 RESETN      : in  std_logic;
+		 AUD_DATA    : in  std_logic_vector(15 downto 0);
+		 AUD_NEW     : in  std_logic;
+		 IO_DATA     : inout  std_logic_vector(15 downto 0) 
+	);
 end AudioMonitor;
 
 architecture a of AudioMonitor is
@@ -31,10 +31,12 @@ architecture a of AudioMonitor is
 	 
 
 	 --constant threshold : std_logic_vector(15 downto 0) := x"2710";
-	 constant threshold : integer := 10000;
-	 constant clapLimit : integer := 10000; -- define how long the clap should be?
-	 signal temp : integer := 0;
-	 signal counter : integer := 0;
+	 constant threshold : integer := 50000;
+	 constant clapLengthLimit : integer := 10000; -- define how long the clap should be?
+	 
+	 signal temp : integer := 0; -- temp variable for adding
+	 
+	 signal clapLength : integer := 0; -- measure
 	 
 	 
 	 TYPE STATE_TYPE IS (
@@ -55,6 +57,7 @@ begin
             output_data <= parsed_data;
         end if;
     end process;
+	 
     -- Drive IO_DATA when needed.
     out_en <= CS AND ( NOT IO_WRITE );
     with out_en select IO_DATA <=
@@ -68,49 +71,42 @@ begin
     begin
         if (RESETN = '0') then -- on reset
             parsed_data <= x"0000"; -- reset the parsed data
-		elsif (rising_edge(AUD_NEW)) then
-			state <= ThresholdTest;
+				
+		elsif (rising_edge(AUD_NEW)) then -- when new audio data comes in
+		
+			state <= ThresholdTest; -- initial state: check if the threshold is met for the audio data
+			
 			CASE state IS
-				WHEN ThresholdTest =>
-					IF (conv_integer(unsigned(AUD_DATA)) >= threshold)THEN
-						IF summon = "10" THEN
-							parsed_data <= x"0000";
-						END IF;
-						state <= ThresholdMet;
+			
+				WHEN ThresholdTest =>  -- check if the threshold is met
+					IF (conv_integer(unsigned(AUD_DATA)) >= threshold) THEN
+						state <= ThresholdMet; -- if it's met move into the met state
 					ELSE
-						state <= ThresholdTest;
+						state <= ThresholdTest; -- stay here otherwise
 					END IF;
-				WHEN ThresholdMet =>
-					--define ThresholdMet state
-						--counter++
-					if (conv_integer(unsigned(AUD_DATA)) >= threshold) then 
-						IF summon = "10" THEN
-							counter <= counter + 1; -- start increasing the counter
-							parsed_data <= x"0000";
-						END IF;
-						state <= ThresholdMet;
-					else 
-						state <= Analysis; 
+					
+				WHEN ThresholdMet => -- when threshold is met
+					if (conv_integer(unsigned(AUD_DATA)) >= threshold) THEN  -- if threshold remains met for consecutive clock cycles
+						clapLength <= clapLength + 1;
+						state <= ThresholdMet; -- stay in this state
+					ELSE 
+						state <= Analysis; -- after threshold is not met analyze the length of the clap
 					end if; 
+					
 				WHEN Analysis => 
-					-- compare counter w/ clap limit
-						if (counter <= clapLimit) then  -- checks the length of the clap?
-							IF summon = "10" THEN
-								counter <= 0; -- reset the counter
-								parsed_data <= x"0000";
-							END IF;
+						if (clapLength <= clapLengthLimit) then  -- checks the length of the clap
+							clapLength <= 0; -- reset clapLength
 							state <= clapState;
 						else 
-							counter <= 0; -- reset the counter
+							clapLength <= 0; -- reset the clapLength
 							state <= ThresholdTest;
 						end if; 
+						
 				WHEN clapState => 
-					IF summon = "10" THEN
-						parsed_data <= x"0000";
-					END IF;
 					temp <= conv_integer(parsed_data) + 1;
 					parsed_data <= conv_std_logic_vector(temp, parsed_data'length);
 					state <= ThresholdTest; 
+					
 			END CASE;
 		end if;
     end process;
