@@ -29,42 +29,40 @@ architecture a of AudioMonitor is
     signal parsed_data : std_logic_vector(15 downto 0);
     signal output_data : std_logic_vector(15 downto 0);
 	 
-
-	 --constant threshold : std_logic_vector(15 downto 0) := x"2710";
-	 constant threshold : integer := 50000;
-	 constant clapLengthLimit : integer := 100; -- define how long the clap should be?
+	 constant threshold : integer := 10000;
+	 constant clapLengthLimit : integer := 10; -- define how long the clap should be
 	 
-	 signal temp : integer := 0; -- temp variable for adding
+	 signal temp2 : integer := 0; -- temp2 variable for adding
+	 signal temp1 : integer := 0;
 	 
 	 signal clapLength : integer := 0; -- measure
 	 
 	 
 	 TYPE STATE_TYPE IS (
-		--Analysis,
-		clapState,
-		ThresholdTest
-		--ThresholdMet
+		Analysis,
+		ClapState,
+		ThresholdTest,
+		ThresholdMet
 	 );
 	 
 	 signal state : STATE_TYPE;
-	 signal summon: std_logic_vector(1 DOWNTO 0);
 
 begin
 
     -- Latch data on rising edge of CS to keep it stable during IN
-  --  process (CS) begin
-    --    if rising_edge(CS) then
-      --      output_data <= parsed_data;
-    --    end if;
-   -- end process;
+    process (CS) begin
+        if rising_edge(CS) then
+            output_data <= parsed_data;
+        end if;
+    end process;
 	 
     -- Drive IO_DATA when needed.
     out_en <= CS AND ( NOT IO_WRITE );
     with out_en select IO_DATA <=
-        parsed_data        when '1',
+        output_data        when '1',
         "ZZZZZZZZZZZZZZZZ" when others;
 
-    -- This template device just copies the input data
+    -- This temp2late device just copies the input data
     -- to IO_DATA by latching the data every time a new
     -- value is ready.
     process (RESETN, SYS_CLK)
@@ -74,26 +72,44 @@ begin
 				
 		elsif (rising_edge(AUD_NEW)) then -- when new audio data comes in
 		
-			--state <= ThresholdTest; -- initial state: check if the threshold is met for the audio data
+			state <= ThresholdTest; -- initial state: check if the threshold is met for the audio data
 			
 			CASE state IS
 			
 				WHEN ThresholdTest =>  -- check if the threshold is met
-					IF (conv_integer(unsigned(AUD_DATA)) >= threshold) THEN
-						state <= ClapState; -- if it's met move into the met state
+					clapLength <= 0;
+					IF (conv_integer(signed(AUD_DATA)) > threshold) THEN
+						state <= ThresholdMet; -- if it's met move into the met state
 					ELSE
 						state <= ThresholdTest; -- stay here otherwise
 					END IF;
 					
-						
-				WHEN clapState => 
-					temp <= conv_integer(parsed_data) + 1;
-					parsed_data <= conv_std_logic_vector(temp, parsed_data'length);
+				WHEN ThresholdMet =>
+					IF (conv_integer(signed(AUD_DATA)) > threshold) THEN
+						temp1 <= clapLength + 1;
+						clapLength <= temp1;
+						state <= ThresholdMet; -- if it's met move into the met state
+					ELSE
+						state <= Analysis; -- stay here otherwise
+					END IF;
+				
+				WHEN Analysis =>
+					IF(clapLength > clapLengthLimit) THEN
+						state <= ThresholdTest;
+					ELSE
+						state <= ClapState;
+					END IF;
+					
+				WHEN ClapState => 
+					parsed_data <= conv_std_logic_vector(clapLength, parsed_data'length);
+					
+					--clapLength <= 0;
+					--temp2 <= conv_integer(parsed_data) + 1;
+					--parsed_data <= conv_std_logic_vector(temp2, parsed_data'length);
 					state <= ThresholdTest; 
 					
 			END CASE;
 		end if;
     end process;
-summon <= CS & IO_WRITE;
 
 end a;
