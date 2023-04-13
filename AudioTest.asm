@@ -8,7 +8,7 @@ STORE	Count
 
 ORG &H1A
 Init:
-	CALL    Delay
+	;CALL    Delay
 	; Get data from the audio peripheral
 	IN      Sound
 	STORE	Data	; Store the OG data
