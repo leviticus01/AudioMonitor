@@ -10,6 +10,7 @@ Init:
 	STORE	Data	; Store the OG data
 	; Display most-significant 10 bits of the magnitude on LEDs
 	AND	Mask
+	ADD     Count
 	OUT	Hex0
 	; GO to the start of the program
 	JUMP   0
