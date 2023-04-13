@@ -40,10 +40,10 @@ architecture a of AudioMonitor is
 	 
 	 
 	 TYPE STATE_TYPE IS (
-		Analysis,
+		--Analysis,
 		clapState,
-		ThresholdTest,
-		ThresholdMet
+		ThresholdTest
+		--ThresholdMet
 	 );
 	 
 	 signal state : STATE_TYPE;
@@ -80,27 +80,11 @@ begin
 			
 				WHEN ThresholdTest =>  -- check if the threshold is met
 					IF (conv_integer(unsigned(AUD_DATA)) >= threshold) THEN
-						state <= ThresholdMet; -- if it's met move into the met state
+						state <= ClapState; -- if it's met move into the met state
 					ELSE
 						state <= ThresholdTest; -- stay here otherwise
 					END IF;
 					
-				WHEN ThresholdMet => -- when threshold is met
-					if (conv_integer(unsigned(AUD_DATA)) >= threshold) THEN  -- if threshold remains met for consecutive clock cycles
-						clapLength <= clapLength + 1;
-						state <= ThresholdMet; -- stay in this state
-					ELSE 
-						state <= Analysis; -- after threshold is not met analyze the length of the clap
-					end if; 
-					
-				WHEN Analysis => 
-						if (clapLength <= clapLengthLimit) then  -- checks the length of the clap
-							clapLength <= 0; -- reset clapLength
-							state <= clapState;
-						else 
-							clapLength <= 0; -- reset the clapLength
-							state <= ThresholdTest;
-						end if; 
 						
 				WHEN clapState => 
 					temp <= conv_integer(parsed_data) + 1;

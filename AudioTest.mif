@@ -1,0 +1,27 @@
+WIDTH=16;
+DEPTH=2048;
+
+ADDRESS_RADIX=HEX;
+DATA_RADIX=HEX;
+
+CONTENT BEGIN
+0000: B800; -- LOADI	0
+0001: 1025; -- STORE	Count
+[0002..0019] : 0000; -- [empty memory]
+001A: B800; -- 	LOADI 0
+001B: 8020; -- 	CALL    Delay
+001C: 9050; -- 	IN      Sound
+001D: 1026; -- 	STORE	Data	; Store the OG data
+001E: 9804; -- 	OUT	Hex0
+001F: 281A; -- 	JUMP Init
+0020: 9802; -- 	OUT    Timer
+0021: 9002; -- 	IN     Timer
+0022: 6FFB; -- 	ADDI   -5
+0023: 3021; -- 	JNEG   WaitingLoop
+0024: 8800; -- 	RETURN
+0025: 0000; -- Count: DW 0
+0026: 0000; -- Data:	DW 0
+0027: 00FF; -- Mask:	DW &HFF
+0028: 0009; -- ResetSwitch:	DW 9
+[0029..07FF] : 0000; -- [empty memory]
+END;

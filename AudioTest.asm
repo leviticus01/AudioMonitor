@@ -8,16 +8,17 @@ STORE	Count
 
 ORG &H1A
 Init:
-	;CALL    Delay
+	LOADI 0
+	CALL    Delay
 	; Get data from the audio peripheral
 	IN      Sound
 	STORE	Data	; Store the OG data
 	; Display most-significant 10 bits of the magnitude on LEDs
-	AND	Mask
-	ADD     Count
+	;AND	Mask
+	;ADD Count
 	OUT	Hex0
 	; GO to the start of the program
-	JUMP   &H1A
+	JUMP Init
 	
 ; the Delay "function"
 Delay:
