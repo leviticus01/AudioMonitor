@@ -3,6 +3,10 @@
 
 ORG 0
 ; The lower 4 bits of the audio peripheral output will be incrementing the number of claps by either 1 or 0; the next 4 bits will be the threshold level (1-3)
+LOADI	0
+STORE	Count
+
+ORG &H1A
 Init:
 	CALL    Delay
 	; Get data from the audio peripheral
@@ -16,7 +20,7 @@ Init:
 	ADD     Count
 	OUT	Hex0
 	; GO to the start of the program
-	JUMP   0
+	JUMP   &H1A
 	
 ; the Delay "function"
 Delay:
