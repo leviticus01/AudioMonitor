@@ -32,7 +32,7 @@ architecture a of AudioMonitor is
 
 	 --constant threshold : std_logic_vector(15 downto 0) := x"2710";
 	 constant threshold : integer := 50000;
-	 constant clapLengthLimit : integer := 10000; -- define how long the clap should be?
+	 constant clapLengthLimit : integer := 100; -- define how long the clap should be?
 	 
 	 signal temp : integer := 0; -- temp variable for adding
 	 
@@ -52,16 +52,16 @@ architecture a of AudioMonitor is
 begin
 
     -- Latch data on rising edge of CS to keep it stable during IN
-    process (CS) begin
-        if rising_edge(CS) then
-            output_data <= parsed_data;
-        end if;
-    end process;
+  --  process (CS) begin
+    --    if rising_edge(CS) then
+      --      output_data <= parsed_data;
+    --    end if;
+   -- end process;
 	 
     -- Drive IO_DATA when needed.
     out_en <= CS AND ( NOT IO_WRITE );
     with out_en select IO_DATA <=
-        output_data        when '1',
+        parsed_data        when '1',
         "ZZZZZZZZZZZZZZZZ" when others;
 
     -- This template device just copies the input data
@@ -74,7 +74,7 @@ begin
 				
 		elsif (rising_edge(AUD_NEW)) then -- when new audio data comes in
 		
-			state <= ThresholdTest; -- initial state: check if the threshold is met for the audio data
+			--state <= ThresholdTest; -- initial state: check if the threshold is met for the audio data
 			
 			CASE state IS
 			
