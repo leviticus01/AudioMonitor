@@ -11,9 +11,6 @@ Init:
 	CALL    Delay
 	; Get data from the audio peripheral
 	IN      Sound
-	SUB     &H50
-	JZERO   Init
-	JNEG    Init
 	STORE	Data	; Store the OG data
 	; Display most-significant 10 bits of the magnitude on LEDs
 	AND	Mask
