@@ -100,12 +100,10 @@ begin
 						state <= ClapState;
 					END IF;
 					
-				WHEN ClapState => 
-					parsed_data <= conv_std_logic_vector(clapLength, parsed_data'length);
-					
-					--clapLength <= 0;
-					--temp2 <= conv_integer(parsed_data) + 1;
-					--parsed_data <= conv_std_logic_vector(temp2, parsed_data'length);
+				WHEN ClapState => 	
+					clapLength <= 0;
+					temp2 <= conv_integer(parsed_data) + 1;
+					parsed_data <= conv_std_logic_vector(temp2, parsed_data'length);
 					state <= ThresholdTest; 
 					
 			END CASE;
