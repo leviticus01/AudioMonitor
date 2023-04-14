@@ -16,6 +16,7 @@ entity AudioMonitor is
 		 CS          : in  std_logic;
 		 IO_WRITE    : in  std_logic;
 		 SYS_CLK     : in  std_logic;  -- SCOMP's clock
+		 --SLOW_CLK	 : in  std_logic; -- slower clock (?)
 		 RESETN      : in  std_logic;
 		 AUD_DATA    : in  std_logic_vector(15 downto 0);
 		 AUD_NEW     : in  std_logic;
@@ -32,13 +33,18 @@ architecture a of AudioMonitor is
 	 constant threshold : integer := 10000;
 	 constant clapLengthLimit : integer := 10; -- define how long the clap should be
 	 
+	 signal temp3 : integer := 0;
 	 signal temp2 : integer := 0; -- temp2 variable for adding
 	 signal temp1 : integer := 0;
 	 
-	 signal clapLength : integer := 0; -- measure
+	 signal clapLength : integer := 0; -- measure length of clap
+	 signal clapDetected : std_logic; -- for debugging
+	 
+	 signal waitTime : integer := 0;
 	 
 	 
 	 TYPE STATE_TYPE IS (
+		Debounce,
 		Analysis,
 		ClapState,
 		ThresholdTest,
@@ -65,13 +71,12 @@ begin
     -- This temp2late device just copies the input data
     -- to IO_DATA by latching the data every time a new
     -- value is ready.
-    process (RESETN, SYS_CLK)
-    begin
-        if (RESETN = '0') then -- on reset
-            parsed_data <= x"0000"; -- reset the parsed data
+	process (RESETN, SYS_CLK)
+	begin
+		if (RESETN = '0') then -- on reset
+			parsed_data <= x"0000"; -- reset the output data
 				
 		elsif (rising_edge(AUD_NEW)) then -- when new audio data comes in
-		
 			state <= ThresholdTest; -- initial state: check if the threshold is met for the audio data
 			
 			CASE state IS
@@ -100,8 +105,16 @@ begin
 						state <= ClapState;
 					END IF;
 					
-				WHEN ClapState => 	
-					clapLength <= 0;
+				WHEN Debounce =>
+					IF(waitTime < 600000) THEN
+						temp3 <= waitTime + 1;
+						waitTime <= temp3;
+						state <= Debounce;
+					ELSE
+						state <= ClapState;
+					END IF;
+				
+				WHEN ClapState => 
 					temp2 <= conv_integer(parsed_data) + 1;
 					parsed_data <= conv_std_logic_vector(temp2, parsed_data'length);
 					state <= ThresholdTest; 
