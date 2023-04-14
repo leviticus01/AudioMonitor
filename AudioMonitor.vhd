@@ -26,10 +26,11 @@ end AudioMonitor;
 architecture a of AudioMonitor is
 
     signal out_en      : std_logic;
-	 signal in_en 		  : std_logic; -- input enable from SCOMP
+	 --signal in_en 		  : std_logic; -- input enable from SCOMP
     signal numClaps : std_logic_vector(15 downto 0);
     signal output_data : std_logic_vector(15 downto 0);
 	 signal input_data  : std_logic_vector(15 downto 0); -- input from SCOMP to set the treshold
+	 signal thresh_from_scomp : std_logic_vector(15 downto 0);
 	 
 	 signal threshold : integer := 10000;
 	 constant clapLengthLimit : integer := 10; -- define how long the clap should be
@@ -52,33 +53,44 @@ architecture a of AudioMonitor is
 	 signal state : STATE_TYPE;
 
 begin
-
-	
+		
+		process(CS,IO_WRITE) begin
+			if(CS = '1' AND IO_WRITE = '1') then -- when SCOMP is sending data
+				thresh_from_scomp <= IO_DATA;
+				threshold <= 1000*conv_integer(unsigned(thresh_from_scomp));
+			elsif (CS = '1' AND IO_WRITE = '0') then 
+				IO_DATA <= numClaps;
+			else
+				IO_DATA <= "ZZZZZZZZZZZZZZZZ";
+			end if;
+		end process;
+		
     -- Latch data on rising edge of CS to keep it stable during IN
-    process (CS) begin
-        if rising_edge(CS) then
-            output_data <= numClaps;
-        end if;
-    end process;
+    --process (CS) begin
+    --    if rising_edge(CS) then
+    --        output_data <= numClaps;
+	--			input_data <= IO_DATA;
+   --     end if;
+   -- end process;
 	 
     -- Drive IO_DATA when needed.
-    out_en <= CS AND ( NOT IO_WRITE );
-    with out_en select IO_DATA <=
-        output_data        when '1',
-        "ZZZZZZZZZZZZZZZZ" when others;
+--    out_en <= CS AND ( NOT IO_WRITE );
+ --   with out_en select IO_DATA <=
+  --      output_data        when '1',
+   --     "ZZZZZZZZZZZZZZZZ" when others;
 	
-	 in_en <= CS AND IO_WRITE;
-	 with in_en select input_data <=
-			IO_DATA			when '1',
-			"0000000000001010" when others;
-			
+--	 in_en <= CS AND IO_WRITE;
+--	 with in_en select input_data <=
+--			IO_DATA			when '1',
+--			"0000000000001010" when others;
+--			
 	-- every time SCOMP writes the threshold, change the threshold value
-	process (CS,IO_WRITE) begin
-		if rising_edge(IO_WRITE) then
-			threshold <= conv_integer(signed(input_data));
-			threshold <= 1000*threshold;
-		end if;
-	end process;
+--	process (CS,IO_WRITE) begin
+--		if (CS = '1' AND IO_WRITE = '1') then
+--			threshold <= conv_integer(signed(input_data));
+--			threshold <= 1000*threshold;
+--		end if;
+--	end process;
 	
     -- This template device just copies the input data
     -- to IO_DATA by latching the data every time a new
