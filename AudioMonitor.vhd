@@ -1,7 +1,7 @@
 -- AudioMonitor.vhd
 -- Created 2023
 -- Levi Tucker, George Lee, Edmond Li, Isaac Chia, Edward Kwak
--- This SCOMP peripheral passes data from an input bus to SCOMP's I/O bus.
+-- This SCOMP peripheral detects claps and passes this information to SCOMP's IO bus.
 
 library IEEE;
 library lpm;
@@ -13,39 +13,32 @@ use lpm.lpm_components.all;
 
 entity AudioMonitor is
 	port(
-		 CS          : in  std_logic;
-		 IO_WRITE    : in  std_logic;
-		 SYS_CLK     : in  std_logic;  -- SCOMP's clock
-		 RESETN      : in  std_logic;
-		 AUD_DATA    : in  std_logic_vector(15 downto 0);
-		 AUD_NEW     : in  std_logic;
-		 IO_DATA     : inout  std_logic_vector(15 downto 0) 
+		CS			:	in		std_logic; -- chip select
+		IO_WRITE	: 	in		std_logic; -- 0 = out to SCOMP, 1 = in from SCOMP
+		SYS_CLK	: 	in  	std_logic; -- SCOMP's clock
+		RESETN	: 	in  	std_logic; -- reset
+		AUD_NEW	: 	in  	std_logic; -- 1 when new audio data
+		
+		AUD_DATA	: 	in		std_logic_vector(15 downto 0); -- incoming audio data
+		IO_DATA	: 	inout	std_logic_vector(15 downto 0)  -- IO bus
 	);
 end AudioMonitor;
 
 architecture a of AudioMonitor is
 
-    signal out_en      : std_logic;
-	 --signal in_en 		  : std_logic; -- input enable from SCOMP
-    signal numClaps : std_logic_vector(15 downto 0);
-    signal output_data : std_logic_vector(15 downto 0);
-	 signal input_data  : std_logic_vector(15 downto 0); -- input from SCOMP to set the treshold
-	 signal thresh_from_scomp : std_logic_vector(15 downto 0);
+	-- IO information for SCOMP
+	signal numClaps : std_logic_vector(15 downto 0); -- output
+	signal thresh_from_scomp : std_logic_vector(15 downto 0); -- input
 	 
-	 signal threshold : integer := 10000;
-	 constant clapLengthLimit : integer := 10; -- define how long the clap should be
-	 
-	 signal temp3 : integer := 0;
-	 signal temp2 : integer := 0; -- temp2 variable for adding
-	 signal temp1 : integer := 0;
-	 
-	 signal clapLength : integer := 0; -- measure length of clap
-	 signal clapDetected : std_logic; -- for debugging
-	 
+	-- maximum length of clap
+	constant clapLengthLimit : integer := 10; -- maximum length of a clap
+
+	-- "variables"
+	signal threshold : integer := 10000; -- default threshold value in case SCOMP doesn't set one initially
+	signal temp2 : integer := 0; -- temporary variable for adding
+	signal clapLength : integer := 0; -- counter to measure the length of the clap
 	 
 	 TYPE STATE_TYPE IS (
-		--Analysis,
-		--ClapState,
 		ThresholdTest,
 		ThresholdMet
 	 );
@@ -54,52 +47,30 @@ architecture a of AudioMonitor is
 
 begin
 		
-		process(CS,IO_WRITE) begin
-			if(CS = '1' AND IO_WRITE = '1') then -- when SCOMP is sending data
-				thresh_from_scomp <= IO_DATA;
-				threshold <= 1000*conv_integer(unsigned(thresh_from_scomp));
-			elsif (CS = '1' AND IO_WRITE = '0') then 
-				IO_DATA <= numClaps;
-			else
-				IO_DATA <= "ZZZZZZZZZZZZZZZZ";
-			end if;
-		end process;
+	-- determines if data should be sent or recieved
+	process(CS,IO_WRITE) begin
+			
+		-- when SCOMP provides a hex value using OUT, convert
+		-- to an integer and multiply by 1000 to obtain a threshold
+		if(CS = '1' AND IO_WRITE = '1') then
+			thresh_from_scomp <= IO_DATA;
+			threshold <= 1000*conv_integer(unsigned(thresh_from_scomp));
+					
+		-- when SCOMP requests data using IN, provide the number of claps that have occured
+		elsif (CS = '1' AND IO_WRITE = '0') then 
+			IO_DATA <= numClaps;
+				
+		-- otherwise do not drive the IO bus
+		else
+			IO_DATA <= "ZZZZZZZZZZZZZZZZ";
+		end if;
 		
-    -- Latch data on rising edge of CS to keep it stable during IN
-    --process (CS) begin
-    --    if rising_edge(CS) then
-    --        output_data <= numClaps;
-	--			input_data <= IO_DATA;
-   --     end if;
-   -- end process;
-	 
-    -- Drive IO_DATA when needed.
---    out_en <= CS AND ( NOT IO_WRITE );
- --   with out_en select IO_DATA <=
-  --      output_data        when '1',
-   --     "ZZZZZZZZZZZZZZZZ" when others;
-	
---	 in_en <= CS AND IO_WRITE;
---	 with in_en select input_data <=
---			IO_DATA			when '1',
---			"0000000000001010" when others;
---			
-	-- every time SCOMP writes the threshold, change the threshold value
---	process (CS,IO_WRITE) begin
---		if (CS = '1' AND IO_WRITE = '1') then
---			threshold <= conv_integer(signed(input_data));
---			threshold <= 1000*threshold;
---		end if;
---	end process;
-	
-    -- This template device just copies the input data
-    -- to IO_DATA by latching the data every time a new
-    -- value is ready.
-	 
+	end process;
+
 	process (RESETN, SYS_CLK)
 	begin
 		if (RESETN = '0') then -- on reset
-			numClaps <= x"0000"; -- reset the output data
+			numClaps <= "0000000000000000"; -- reset the output data
 				
 		elsif (rising_edge(AUD_NEW)) then -- when new audio data comes in
 			state <= ThresholdTest; -- initial state: check if the threshold is met for the audio data
@@ -127,19 +98,6 @@ begin
 							state <= ThresholdTest; -- go back to initial state
 						END IF;
 					END IF;
-				
---			WHEN Analysis =>
---					IF(clapLength > clapLengthLimit) THEN
---						state <= ThresholdTest;
---					ELSE
---						state <= ClapState;
---					END IF;
---				
---				WHEN ClapState => 
---					temp2 <= conv_integer(numClaps) + 1;
---					numClaps <= conv_std_logic_vector(temp2, numClaps'length);
---					state <= ThresholdTest; 
-					
 			END CASE;
 		end if;
     end process;
