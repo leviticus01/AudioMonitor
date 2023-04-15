@@ -5,6 +5,7 @@ Updated April 15 2023 02:40 PM by Levi Tucker
 List of files and their descriptions:
 
 AudioDemo.asm - SCOMP software for the demonstration (same as AudioDemo.mif)
+
 AudioDemo.mif - memory initialization file for the demonstration (same as AudioDemo.asm)
 
 AudioMonitor.vhd - the peripheral
