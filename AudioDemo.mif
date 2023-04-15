@@ -1,0 +1,24 @@
+WIDTH=16;
+DEPTH=2048;
+
+ADDRESS_RADIX=HEX;
+DATA_RADIX=HEX;
+
+CONTENT BEGIN
+0000: 9000; -- 	IN Switches
+0001: 100E; -- 	STORE Threshold
+0002: 080E; -- 	LOAD Threshold
+0003: 9805; -- 	OUT	Hex1
+0004: 9850; -- 	OUT Sound
+0005: 8009; -- 	CALL Delay
+0006: 9050; --     IN Sound
+0007: 9804; --     OUT Hex0
+0008: 2800; -- JUMP Init
+0009: 9802; -- 	OUT    Timer
+000A: 9002; -- 	IN     Timer
+000B: 6FFB; -- 	ADDI   -5
+000C: 300A; -- 	JNEG   WaitingLoop
+000D: 8800; -- 	RETURN
+000E: 0000; -- Threshold: DW 0
+[000F..07FF] : 0000; -- [empty memory]
+END;
